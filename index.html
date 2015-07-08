@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Product Selector</title>
+  <script src="bower_components/react/react.min.js"></script>
+  <script src="bower_components/react/JSXTransformer.js"></script>
+</head>
+<body>
+  <div id="content"></div>
+
+  <script type="text/jsx">
+    var ProductInfo = React.createClass({
+      getInitialState: function () {
+        return {product: this.props.products[0]}  
+      },
+
+      handleChangeProduct: function (product) {
+        this.setState({product: product})
+      },
+
+      render: function () {
+        return (
+          <div>
+            <ProductName product={this.state.product} />
+
+            <ProductVariantInfo 
+              product={this.state.product} 
+              variants={this.props.variants} />
+              
+            <ProductSelector 
+              products= {this.props.products}
+              product={this.state.product} 
+              variants={this.props.variants}
+              changeProduct={this.handleChangeProduct} />
+          </div>
+        )
+      }
+    });
+
+    var ProductName = React.createClass({
+      render: function () {
+        return (
+          <h1>{this.props.product.name}</h1>
+        )
+      }
+    });
+
+    var ProductVariantInfo = React.createClass({
+      render: function () {
+        var variantInfo = function (variant, index) {
+          return (
+            <p key={index} >
+              <strong>{variant.name}: </strong>
+              <span>{getVariantValue(variant.id)}</span>
+            </p>
+          )
+        };
+
+        var getVariantValue = function (variantId) {
+          return this.props.product.variantValues.filter(function (value) {
+            return value.variantId == variantId;
+          }).map(function (value) {
+            return value.name;
+          })[0];
+        }.bind(this);
+
+        return (
+          <div className="product-variant">
+            {this.props.variants.map(variantInfo)}
+          </div>
+        )
+      }
+    });
+
+    var ProductSelector = React.createClass({
+      getInitialState: function () {
+        return {variantValues: this.props.product.variantValues}
+      },
+
+      handleChange: function (e) {
+
+        var allVariantValues = this.props.variants.map(function (variant) {
+          return variant.variantValues;
+        }).reduce(function(a, b) {
+          return a.concat(b);
+        });
+
+        var variant = allVariantValues.filter(function (value) {
+          return value.id == e.target.value;
+        })[0];
+
+        var variantValues = [];
+        this.state.variantValues.forEach(function (value, index) {
+          if (value.variantId == variant.variantId) {
+            variantValues[index] = variant;
+          }
+          else {
+            variantValues[index] = value;
+          }
+        });
+        
+        this.setState({variantValues: variantValues});
+
+        var variantIds = variantValues.map(function (value) {
+          return value.id;
+        });
+
+        var isSame = function (ids) {
+          return ids.every(function (element, index) {
+            return element == variantIds[index];
+          })
+        }
+
+        var product = this.props.products.filter(function (product) {
+          var ids = product.variantValues.map(function (value) {
+            return value.id;
+          });
+          
+          return isSame(ids);
+        })[0];
+
+        if (product) {
+          this.props.changeProduct(product);
+        }
+      },
+
+      render: function () {
+        var createSelect = function (variant, index) {
+          return (
+            <select value={currentVariantId(this.state.variantValues, variant)} key={index}
+              onChange={this.handleChange}>
+              {variant.variantValues.map(createOption)}
+            </select>
+          )
+        }.bind(this);
+
+        var createOption = function (value, index) {
+          return (
+            <option value={value.id} key={index} >
+              {value.name}
+            </option>
+          )
+        };
+
+        var currentVariantId = function (variantValues, variant) {
+          return variantValues.filter(function (value) {
+            return value.variantId == variant.id;
+          }).map(function (value) {
+            return value.id;
+          })[0];
+        };
+
+        return (
+          <div className="product-selector">
+            {this.props.variants.map(createSelect)}
+          </div>
+        )
+      }
+    });
+
+    var products = [
+      {
+        "id": 1, 
+        "name": "Blue T-shirt", 
+        "variantValues": [
+          {"id": 1, "name": "Blue", "variantId": 1}, 
+          {"id": 5, "name": "M", "variantId": 2}
+        ]
+      },
+
+      {
+        "id": 2, 
+        "name": "Black T-shirt", 
+        "variantValues": [
+          {"id": 3, "name": "Black", "variantId": 1},
+          {"id": 5, "name": "M", "variantId": 2}
+        ]
+      },
+
+      {
+        "id": 3, 
+        "name": "Green T-shirt", 
+        "variantValues": [
+          {"id": 2, "name": "Green", "variantId": 1}, 
+          {"id": 6, "name": "S", "variantId": 2}
+        ]
+      }
+    ];
+
+    var variants = [
+      {"id": 1, "name": "color", "variantValues": [
+        {"id": 1, "name": "Blue", "variantId": 1}, 
+        {"id": 2, "name": "Green", "variantId": 1}, 
+        {"id": 3, "name": "Black", "variantId": 1}]},
+      {"id": 2, "name": "size", "variantValues": [
+        {"id": 4, "name": "L", "variantId": 2}, 
+        {"id": 5, "name": "M", "variantId": 2}, 
+        {"id": 6, "name": "S", "variantId": 2}]}
+    ];
+
+    React.render(<ProductInfo products={products} variants={variants} />, 
+      document.getElementById('content'));
+  </script>
+</body>
+</html>
